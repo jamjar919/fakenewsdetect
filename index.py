@@ -8,8 +8,8 @@ from functools import reduce
 
 
 # Constants
-NUMBER_OF_TEST_ARTICLES = 100;
-VOCAB_SIZE = 5000;
+NUMBER_OF_TEST_ARTICLES = 500;
+VOCAB_SIZE = 10000;
 
 def loadArticles(name):
     return pd.read_csv(name, header=0, delimiter=",")
@@ -164,7 +164,7 @@ for i in range(0, test["TEXT"].size):
     if c == 0:
         if realClass == 0:
             numCorrectNegative += 1;
-        if realClass == 0: 
+        if realClass == 1: 
             numFalseNegative += 1;
     if c == 1:
         if realClass == 1:
@@ -178,11 +178,13 @@ numFalsePositivePercent = 100 * (numFalsePositive / test["TEXT"].size);
 numFalseNegativePercent = 100 * (numFalseNegative / test["TEXT"].size);
 numCorrectNegativePercent = 100 * (numCorrectNegative / test["TEXT"].size);
 totalCorrect = numCorrectPositive + numCorrectNegative;
-totalCorrectPercent = 100 * (totalCorrectPercent / test["TEXT"].size);
+totalCorrectPercent = 100 * (totalCorrect / test["TEXT"].size);
 
 print()
 print("Test Run Complete")
 print()
-print("Total correct: ")
-
-
+print("Total correct: "+str(totalCorrect)+"("+str(totalCorrectPercent)+"%)")
+print("Total correct positives: "+str(numCorrectPositive)+"("+str(numCorrectPositivePercent)+"%)")
+print("Total false positives: "+str(numFalsePositive)+"("+str(numFalsePositivePercent)+"%)")
+print("Total total false negatives: "+str(numFalseNegative)+"("+str(numFalseNegativePercent)+"%)")
+print("Total correct negatives: "+str(numCorrectNegative)+"("+str(numCorrectNegativePercent)+"%)")
