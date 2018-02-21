@@ -1,15 +1,16 @@
-import pandas as pd 
-from keras.preprocessing.text import text_to_word_sequence
-import nltk
-from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import CountVectorizer
-import numpy as np
-from functools import reduce
-
+import pandas as pd;
+from keras.preprocessing.text import text_to_word_sequence;
+import nltk;
+from nltk.corpus import stopwords;
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer;
+import numpy as np;
+from functools import reduce;
+from bayes import probabilityOfWordGivenClass, probabilityOfClassGivenDocument;
 
 # Constants
 NUMBER_OF_TEST_ARTICLES = 500;
 VOCAB_SIZE = 10000;
+USE_TDIDF = True;
 
 def loadArticles(name):
     return pd.read_csv(name, header=0, delimiter=",")
@@ -43,55 +44,29 @@ def printFrequencyCount(frequency, terms):
     for tag, count in zip(terms, dist):
         print(count, tag)
 
-def probabilityOfWordGivenClass(word, frequencies, vocab, totalFrequencies, totalVocab):
-    '''
-    We use laplace smoothing here
-    '''
-    # Find word in frequencies list
-    try:
-        index = vocab.index(word);
-        freq = frequencies[index];
-        prob = (freq + 1)/(totalFrequencies + totalVocab);
-        return prob;
-    except ValueError:
-        return (1)/(totalFrequencies + totalVocab);
-
-def probabilityOfClassGivenDocument(document, c, totalFrequencies, totalVocab):
-    frequencies, terms, P_c, _ = c;
-    # Bayes rule for class c and document d - P(c|d) = P(d|c)P(c)/P(d)
-    # We can get our class mapping by representing the document d as a set of features x1,x2...xn
-    # Hence calculate P(x1|c)P(x2|c)...P(xn|c)
-
-    print("TOTAL FREQ",totalFrequencies,"TOTAL VOCAB",totalVocab)
-    
-    # Extract words from our document
-    features = text_to_word_sequence(document);
-    probabilities = list();
-    for f in features:
-        probabilities.append(probabilityOfWordGivenClass(f, frequencies, terms, totalFrequencies, totalVocab));
-    pi = np.log(1);
-    for p in probabilities:
-        pi = pi + np.log(p);
-    return pi + np.log(P_c);
-
 def documentClass(document, classes = []):
-    # Classes = An array of (frequencies, terms, P_c, name)
+    '''
+    Classes = An tuple of (frequencies, terms, P_c, name*)
+    Returns the log of the score, not the actual score (As it's very small)
+    '''
+
     # Calculate vocab sizes and total the frequencies for each class
-    # Returns the log of the score
     vocabSizes = list();
     totalFrequencies = list();
     for c in classes:
         vocabSizes.append(len(c[1]));
         totalFrequencies.append(np.sum(c[0]));
-    # Match the document to each class:
     print("Testing document");
-    print(document[0:300]);
+    print(document[0:300],"...");
+
+    # Match the document to each class using bayes.py
     vals = list();
     for i in range(0, len(classes)):
         c = classes[i];
         prob = probabilityOfClassGivenDocument(cleanText(document), c, totalFrequencies[i], vocabSizes[i]);
         vals.append(prob);
         print("Document has a e^"+str(prob)+" score for being in class "+c[3]+"("+str(i)+")");
+        
     # Find maximum out of vals
     m = np.amax(vals);
     indexOfMax = vals.index(m);
@@ -102,9 +77,6 @@ articles = loadArticles("news_ds.csv")
 # Split into training articles and test articles
 test = articles[0:NUMBER_OF_TEST_ARTICLES];
 articles = articles[NUMBER_OF_TEST_ARTICLES:];
-
-print(test);
-print(articles);
 
 # Calculate base probabilities for P_fake, P_real (the chance of an article being classified into these categories)
 numArticles = articles["TEXT"].size
@@ -141,9 +113,24 @@ print("P_fake:",P_fake,"  P_real:",P_real);
 frequencyReal, termsReal = calculateTermFrequency(realArticles, max_features=VOCAB_SIZE, vocabulary=terms);
 frequencyFake, termsFake = calculateTermFrequency(fakeArticles, max_features=VOCAB_SIZE, vocabulary=terms);
 
+# Are we using TD-IDF? 
+if USE_TDIDF:
+    # Convert our term frequency into term frequency inverse document frequency
+    tfidfReal = TfidfTransformer(norm="l2")
+    frequencyReal = tfidfReal.fit_transform(frequencyReal).todense();
+    tdifFake = TfidfTransformer(norm="l2")
+    frequencyFake = tdifFake.fit_transform(frequencyFake).todense();
+
 # Calculate total frequencies
 frequencySumReal = np.sum(frequencyReal, axis=0)
 frequencySumFake = np.sum(frequencyFake, axis=0)
+
+# Requires an extra upack for some reason
+if USE_TDIDF:
+    frequencySumReal = frequencySumReal.tolist()[0];
+    frequencySumFake = frequencySumFake.tolist()[0];
+
+print("Trained!")
 
 # Set up evaluation vars
 numCorrectPositive = 0; # We classified as real, and it's real
@@ -152,6 +139,7 @@ numFalseNegative = 0; # We classified as fake, and it's real
 numCorrectNegative = 0; # We classified as fake, and it's fake
 
 # Test!!
+print("Testing data...")
 for i in range(0, test["TEXT"].size):
     # Test real one 
     document = test["TEXT"].iloc[i];
@@ -179,6 +167,9 @@ numFalseNegativePercent = 100 * (numFalseNegative / test["TEXT"].size);
 numCorrectNegativePercent = 100 * (numCorrectNegative / test["TEXT"].size);
 totalCorrect = numCorrectPositive + numCorrectNegative;
 totalCorrectPercent = 100 * (totalCorrect / test["TEXT"].size);
+recall = numCorrectPositive / (numCorrectPositive + numFalseNegative);
+precision = numCorrectPositive / (numCorrectPositive + numFalsePositive);
+fmeasure = 2*(recall * precision) / (recall + precision)
 
 print()
 print("Test Run Complete")
@@ -188,3 +179,7 @@ print("Total correct positives: "+str(numCorrectPositive)+"("+str(numCorrectPosi
 print("Total false positives: "+str(numFalsePositive)+"("+str(numFalsePositivePercent)+"%)")
 print("Total total false negatives: "+str(numFalseNegative)+"("+str(numFalseNegativePercent)+"%)")
 print("Total correct negatives: "+str(numCorrectNegative)+"("+str(numCorrectNegativePercent)+"%)")
+print();
+print("Recall measure:"+str(recall));
+print("Precision measure:"+str(precision));
+print("F-measure:"+str(fmeasure));
