@@ -100,11 +100,14 @@ def shallowLearn(articles, NUMBER_OF_TEST_ARTICLES=500, VOCAB_SIZE=10000, USE_TD
 
     print("Extracting vocabulary")
     _, terms = calculateTermFrequency(allArticles, max_features=VOCAB_SIZE)
+    print("Vocab size",len(terms))
     if (USE_NGRAMS):
         print("Extracting 2-grams")
         _, ngram2Terms = calculateTermFrequency(allArticles, max_features=VOCAB_SIZE, ngrams=2)
+        print("Vocab size",len(ngram2Terms))
         print("Extracting 3-grams")
         _, ngram3Terms = calculateTermFrequency(allArticles, max_features=VOCAB_SIZE, ngrams=3)
+        print("Vocab size",len(ngram3Terms))
     print("Terms extracted")
 
 
