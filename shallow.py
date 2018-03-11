@@ -6,10 +6,14 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 import numpy as np
 from functools import reduce
 from bayes import probabilityOfWordGivenClass, probabilityOfClassGivenDocument
+from unidecode import unidecode
 
 
 def cleanText(dirty):
     # Convert to lowercase and remove punctuation
+    dirty = unidecode(str(dirty))
+    dirty = dirty.replace("\"", " ")
+
     clean = text_to_word_sequence(dirty)
     # Remove stopwords
     stops = set(stopwords.words("english"))

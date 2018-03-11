@@ -44,7 +44,7 @@ def probabilityOfClassGivenDocument(document, c, totalFrequencies, totalVocab, n
             gram3 = wm2 + " " + gram2
             pgram2 = probabilityOfWordGivenClass(gram2, frequencies2Gram, terms2Gram, totalFreq2Gram, totalVocab2Gram)
             pgram3 = probabilityOfWordGivenClass(gram3, frequencies3Gram, terms3Gram, totalFreq3Gram, totalVocab3Gram)
-            p = 0.33*p + 0.33*pgram2 + 0.33*pgram3
+            p = 0.125*p + 0.375*pgram2 + 0.5*pgram3
         probabilities.append(p)
     pi = np.log(1)
     for p in probabilities:
