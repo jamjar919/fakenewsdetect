@@ -153,20 +153,20 @@ def shallowLearn(articles, NUMBER_OF_TEST_ARTICLES=500, VOCAB_SIZE=10000, USE_TD
     frequencySumReal = np.sum(frequencyReal, axis=0)
     frequencySumFake = np.sum(frequencyFake, axis=0)
     if USE_NGRAMS:
-        ngram2frequencyReal = np.sum(ngram2frequencyReal, axis=0)
-        ngram2frequencyFake = np.sum(ngram2frequencyFake, axis=0)
-        ngram3frequencyReal = np.sum(ngram3frequencyReal, axis=0)
-        ngram3frequencyFake = np.sum(ngram3frequencyFake, axis=0)
+        ngram2frequencySumReal = np.sum(ngram2frequencyReal, axis=0)
+        ngram2frequencySumFake = np.sum(ngram2frequencyFake, axis=0)
+        ngram3frequencySumReal = np.sum(ngram3frequencyReal, axis=0)
+        ngram3frequencySumFake = np.sum(ngram3frequencyFake, axis=0)
 
-    # Requires an extra upack for some reason
+    # Requires an extra unpack for some reason
     if USE_TDIDF:
         frequencySumReal = frequencySumReal.tolist()[0]
         frequencySumFake = frequencySumFake.tolist()[0]
         if USE_NGRAMS:
-            ngram2frequencySumReal = ngram2frequencyReal.tolist()[0]
-            ngram2frequencySumFake = ngram2frequencyFake.tolist()[0]
-            ngram3frequencySumReal = ngram3frequencyReal.tolist()[0]
-            ngram3frequencySumFake = ngram3frequencyFake.tolist()[0]
+            ngram2frequencySumReal = ngram2frequencySumReal.tolist()[0]
+            ngram2frequencySumFake = ngram2frequencySumFake.tolist()[0]
+            ngram3frequencySumReal = ngram3frequencySumReal.tolist()[0]
+            ngram3frequencySumFake = ngram3frequencySumFake.tolist()[0]
 
     # Set up ngram list if we need to
     ngramListReal = []

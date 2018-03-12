@@ -6,6 +6,8 @@ import pandas as pd
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM
+from keras.layers import Dropout
+from keras.layers import SimpleRNN
 from keras.layers.embeddings import Embedding
 from keras.preprocessing import sequence
 from keras.preprocessing.text import text_to_word_sequence
@@ -24,10 +26,7 @@ nlp = spacy.load('en_vectors_web_lg')
 np.random.seed(7)
 
 VECTOR_DIMENSIONS = 300
-EPOCHS = 1
-VOCAB_SIZE = 10000
 MAX_SEQUENCE_LENGTH = 1000
-BATCH_SIZE = 64
 
 # more constants
 OTHER_TOKEN = "<OTHER>"
@@ -77,7 +76,7 @@ def pad(sequence, padchar):
     else:
         return ([padchar]*(MAX_SEQUENCE_LENGTH - len(sequence)))+sequence
 
-def deepLearn(articles, NUMBER_OF_TEST_ARTICLES=250):
+def deepLearn(articles, NUMBER_OF_TEST_ARTICLES=250, EPOCHS = 3, BATCH_SIZE = 64, VOCAB_SIZE = 10000, USE_DROPOUT=True, DROPOUT_RATE = 0.1, USE_RNN = False):
     # Split real and fake data
     real = articles[articles["LABEL"] == 1]
     fake = articles[articles["LABEL"] == 0]
@@ -183,13 +182,65 @@ def deepLearn(articles, NUMBER_OF_TEST_ARTICLES=250):
             weights=[weights]
         )
     )
-    model.add(LSTM(64))
+    if USE_RNN:
+        model.add(SimpleRNN(64))
+    else:
+        model.add(LSTM(64))
+    if USE_DROPOUT:
+        model.add(Dropout(DROPOUT_RATE))
     model.add(Dense(1, activation='sigmoid'))
     model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
     model.summary()
     model.fit(x=texts, y=target, batch_size=BATCH_SIZE, epochs=EPOCHS, validation_data=(test, testTarget))
 
-    model.evaluate(test, testTarget)
+    print("Testing...")
+    pred = model.predict(test)
+
+    # Set up evaluation vars
+    numCorrectPositive = 0 # We classified as real, and it's real
+    numFalsePositive = 0 # We classified as real, and it's fake 
+    numFalseNegative = 0 # We classified as fake, and it's real
+    numCorrectNegative = 0 # We classified as fake, and it's fake
+
+    for i in range(0, len(pred)):
+        p = pred[i]
+        c = np.round(p)
+        realClass = testTarget[i]
+        # print("Model:",p," => (",c,") Actual:",realClass)
+        if c == 0:
+            if realClass == 0:
+                numCorrectNegative += 1
+            if realClass == 1: 
+                numFalseNegative += 1
+        if c == 1:
+            if realClass == 1:
+                numCorrectPositive += 1
+            if realClass == 0: 
+                numFalsePositive += 1
+
+    # Work out percents
+    numCorrectPositivePercent = 100 * (numCorrectPositive / len(test))
+    numFalsePositivePercent = 100 * (numFalsePositive / len(test))
+    numFalseNegativePercent = 100 * (numFalseNegative / len(test))
+    numCorrectNegativePercent = 100 * (numCorrectNegative / len(test))
+    totalCorrect = numCorrectPositive + numCorrectNegative
+    totalCorrectPercent = 100 * (totalCorrect / len(test))
+    recall = numCorrectPositive / (numCorrectPositive + numFalseNegative)
+    precision = numCorrectPositive / (numCorrectPositive + numFalsePositive)
+    fmeasure = 2*(recall * precision) / (recall + precision)
+
+    print()
+    print("Test Run Complete")
+    print()
+    print("Total correct: "+str(totalCorrect)+"("+str(totalCorrectPercent)+"%)")
+    print("Total correct positives: "+str(numCorrectPositive)+"("+str(numCorrectPositivePercent)+"%)")
+    print("Total false positives: "+str(numFalsePositive)+"("+str(numFalsePositivePercent)+"%)")
+    print("Total total false negatives: "+str(numFalseNegative)+"("+str(numFalseNegativePercent)+"%)")
+    print("Total correct negatives: "+str(numCorrectNegative)+"("+str(numCorrectNegativePercent)+"%)")
+    print()
+    print("Recall measure:"+str(recall))
+    print("Precision measure:"+str(precision))
+    print("F-measure:"+str(fmeasure))
 
     
 
